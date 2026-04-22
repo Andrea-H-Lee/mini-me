@@ -2,24 +2,100 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>我的專屬狀態欄</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>迷你暄</title>
     <style>
-        body { font-family: 'Arial', sans-serif; background: #f0f0f0; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); text-align: center; width: 300px; }
-        .avatar { width: 150px; height: 150px; margin-bottom: 20px; }
-        .bar-container { background: #eee; border-radius: 10px; height: 20px; margin: 10px 0; overflow: hidden; position: relative; }
-        .bar-fill { height: 100%; transition: width 0.5s ease; }
-        .hp-bar { background: #ff5e5e; }
-        .mp-bar { background: #5eb5ff; }
-        .label { font-size: 12px; font-weight: bold; position: absolute; width: 100%; top: 0; line-height: 20px; }
-        .inventory { background: #fff9e6; border: 1px dashed #ffd34d; padding: 10px; border-radius: 10px; margin-top: 15px; }
+        body { 
+            font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; 
+            background: #ffe6f0; /* 換個粉嫩的背景色 */
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0; 
+        }
+        .card { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 30px; 
+            box-shadow: 0 15px 35px rgba(255, 105, 180, 0.2); 
+            text-align: center; 
+            width: 90%; 
+            max-width: 400px; /* 限制電腦版寬度，手機版會自動縮放 */
+        }
+        /* 圖片優化：讓圖片填滿容器並保持比例 */
+        .avatar-container {
+            width: 100%;
+            height: 300px; /* 固定高度，讓大圖小圖看起來一致 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .avatar { 
+            max-width: 100%; 
+            max-height: 100%; 
+            object-fit: contain; /* 自動適應大小不一的圖片，不變形 */
+            transition: transform 0.3s ease;
+        }
+        /* 數值條優化 */
+        .bar-container { 
+            background: #eee; 
+            border-radius: 15px; 
+            height: 25px; 
+            margin: 15px 0; 
+            position: relative; 
+            overflow: hidden;
+        }
+        .bar-fill { height: 100%; transition: width 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .hp-bar { background: linear-gradient(90deg, #ff8a8a, #ff5e5e); }
+        .mp-bar { background: linear-gradient(90deg, #8ad4ff, #5eb5ff); }
+        .label { 
+            font-size: 14px; 
+            font-weight: bold; 
+            position: absolute; 
+            width: 100%; 
+            top: 0; 
+            line-height: 25px; 
+            color: #333;
+            text-shadow: 0 0 5px white;
+        }
+        /* 按鈕樣式 */
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 50px;
+            background: #ff85b3;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 4px 0 #d45d8a;
+        }
+        button:active { transform: translateY(3px); box-shadow: none; }
+        button:hover { background: #ff5c9d; }
+
+        .inventory { 
+            background: #fff0f5; 
+            border: 2px dashed #ffb6c1; 
+            padding: 15px; 
+            border-radius: 15px; 
+            margin-top: 20px; 
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2 id="status-text">載入中...</h2>
-    <img id="avatar-img" class="avatar" src="default.png" alt="角色狀態">
+    <h2 id="status-text" style="color: #d45d8a;">讀取狀態中...</h2>
+    
+    <div class="avatar-container">
+        <img id="avatar-img" class="avatar" src="" alt="迷你暄">
+    </div>
     
     <div class="bar-container">
         <div id="hp-fill" class="bar-fill hp-bar" style="width: 0%"></div>
@@ -31,16 +107,20 @@
         <div class="label">MP (精力): <span id="mp-val">0</span>%</div>
     </div>
 
+    <div class="btn-group">
+        <button onclick="interact('mp')">👋 摸摸頭</button>
+        <button onclick="interact('hp')">🍰 餵食</button>
+    </div>
+
     <div class="inventory">
-        <strong>🎒 背包補給：</strong>
-        <p id="food-list">無資料</p>
+        <strong>🎒 今日補給清單：</strong>
+        <p id="food-list">掃描背包中...</p>
     </div>
 </div>
 
 <script>
-    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS4g6GDN1dKfdgsYF4MBlVnM99HCheg836IVKfnae879SFhSShATnoLGzG24V9WZqQagLw9YeGH8oVb/pub?output=csv'; // 貼上妳發佈的 CSV 連結
+    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS4g6GDN1dKfdgsYF4MBlVnM99HCheg836IVKfnae879SFhSShATnoLGzG24V9WZqQagLw9YeGH8oVb/pubhtml'; // 記得換回妳的連結
 
-    // 設定圖片對應路徑
     const images = {
         '一般': 'normal.png',
         '累': 'tired.png',
@@ -48,38 +128,65 @@
         '睡覺中': 'sleeping.png'
     };
 
+    let currentHP = 0;
+    let currentMP = 0;
+
     async function updateStatus() {
         try {
             const response = await fetch(CSV_URL);
             const data = await response.text();
             const rows = data.split('\n');
-            const values = rows[1].split(','); // 取得第二列資料
+            const values = rows[1].split(',');
 
             const status = values[0].trim();
-            const hp = values[1].trim();
-            const mp = values[2].trim();
+            currentHP = parseInt(values[1]) || 0;
+            currentMP = parseInt(values[2]) || 0;
             const food = values[3].trim();
 
-            // 更新介面
-            document.getElementById('status-text').innerText = `目前狀態：${status}`;
-            document.getElementById('hp-val').innerText = hp;
-            document.getElementById('hp-fill').style.width = hp + '%';
-            document.getElementById('mp-val').innerText = mp;
-            document.getElementById('mp-fill').style.width = mp + '%';
-            document.getElementById('food-list').innerText = food;
-
-            // 切換圖片
-            if (images[status]) {
-                document.getElementById('avatar-img').src = images[status];
-            }
+            refreshUI(status, currentHP, currentMP, food);
         } catch (error) {
-            console.error('資料抓取失敗:', error);
+            console.error('更新失敗', error);
         }
     }
 
-    // 每分鐘自動更新一次
+    function refreshUI(status, hp, mp, food) {
+        document.getElementById('status-text').innerText = `迷你暄：${status}`;
+        document.getElementById('hp-val').innerText = hp;
+        document.getElementById('hp-fill').style.width = Math.min(hp, 100) + '%';
+        document.getElementById('mp-val').innerText = mp;
+        document.getElementById('mp-fill').style.width = Math.min(mp, 100) + '%';
+        document.getElementById('food-list').innerText = food;
+
+        if (images[status]) {
+            const img = document.getElementById('avatar-img');
+            img.src = images[status];
+            // 簡單的小動畫
+            img.style.transform = "scale(1.05)";
+            setTimeout(() => img.style.transform = "scale(1)", 200);
+        }
+    }
+
+    // 按鈕互動功能
+    function interact(type) {
+        if (type === 'hp') {
+            currentHP = Math.min(currentHP + 1, 100);
+        } else {
+            currentMP = Math.min(currentMP + 1, 100);
+        }
+        // 即時反映在畫面上
+        document.getElementById('hp-val').innerText = currentHP;
+        document.getElementById('hp-fill').style.width = currentHP + '%';
+        document.getElementById('mp-val').innerText = currentMP;
+        document.getElementById('mp-fill').style.width = currentMP + '%';
+        
+        // 點擊反饋效果
+        const img = document.getElementById('avatar-img');
+        img.style.transform = "translateY(-10px)";
+        setTimeout(() => img.style.transform = "translateY(0)", 200);
+    }
+
     updateStatus();
-    setInterval(updateStatus, 60000);
+    setInterval(updateStatus, 60000); // 每一分鐘同步一次 Google 表格
 </script>
 
 </body>

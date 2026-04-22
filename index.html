@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>我的專屬狀態欄</title>
+    <style>
+        body { font-family: 'Arial', sans-serif; background: #f0f0f0; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); text-align: center; width: 300px; }
+        .avatar { width: 150px; height: 150px; margin-bottom: 20px; }
+        .bar-container { background: #eee; border-radius: 10px; height: 20px; margin: 10px 0; overflow: hidden; position: relative; }
+        .bar-fill { height: 100%; transition: width 0.5s ease; }
+        .hp-bar { background: #ff5e5e; }
+        .mp-bar { background: #5eb5ff; }
+        .label { font-size: 12px; font-weight: bold; position: absolute; width: 100%; top: 0; line-height: 20px; }
+        .inventory { background: #fff9e6; border: 1px dashed #ffd34d; padding: 10px; border-radius: 10px; margin-top: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2 id="status-text">載入中...</h2>
+    <img id="avatar-img" class="avatar" src="default.png" alt="角色狀態">
+    
+    <div class="bar-container">
+        <div id="hp-fill" class="bar-fill hp-bar" style="width: 0%"></div>
+        <div class="label">HP (體力): <span id="hp-val">0</span>%</div>
+    </div>
+
+    <div class="bar-container">
+        <div id="mp-fill" class="bar-fill mp-bar" style="width: 0%"></div>
+        <div class="label">MP (精力): <span id="mp-val">0</span>%</div>
+    </div>
+
+    <div class="inventory">
+        <strong>🎒 背包補給：</strong>
+        <p id="food-list">無資料</p>
+    </div>
+</div>
+
+<script>
+    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS4g6GDN1dKfdgsYF4MBlVnM99HCheg836IVKfnae879SFhSShATnoLGzG24V9WZqQagLw9YeGH8oVb/pub?output=csv'; // 貼上妳發佈的 CSV 連結
+
+    // 設定圖片對應路徑
+    const images = {
+        '一般': 'normal.png',
+        '累': 'tired.png',
+        '精神很好': 'energetic.png',
+        '睡覺中': 'sleeping.png'
+    };
+
+    async function updateStatus() {
+        try {
+            const response = await fetch(CSV_URL);
+            const data = await response.text();
+            const rows = data.split('\n');
+            const values = rows[1].split(','); // 取得第二列資料
+
+            const status = values[0].trim();
+            const hp = values[1].trim();
+            const mp = values[2].trim();
+            const food = values[3].trim();
+
+            // 更新介面
+            document.getElementById('status-text').innerText = `目前狀態：${status}`;
+            document.getElementById('hp-val').innerText = hp;
+            document.getElementById('hp-fill').style.width = hp + '%';
+            document.getElementById('mp-val').innerText = mp;
+            document.getElementById('mp-fill').style.width = mp + '%';
+            document.getElementById('food-list').innerText = food;
+
+            // 切換圖片
+            if (images[status]) {
+                document.getElementById('avatar-img').src = images[status];
+            }
+        } catch (error) {
+            console.error('資料抓取失敗:', error);
+        }
+    }
+
+    // 每分鐘自動更新一次
+    updateStatus();
+    setInterval(updateStatus, 60000);
+</script>
+
+</body>
+</html>
